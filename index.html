@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Fluid Particles</title>
+
+        <meta name="description" content="Real-time particle-based 3D fluid simulation and rendering using WebGL.">
+
+        <link href='https://fonts.googleapis.com/css?family=Asap:400,700' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css"/>
+        <link rel="stylesheet" href="flip.css"/>
+        <style>
+            #color-pickers-container {
+                margin-top: 8px;
+            }
+            .color-picker-wrapper {
+                display: flex;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            .remove-color {
+                margin-left: 8px;
+                color: #ff4444;
+                cursor: pointer;
+                font-size: 20px;
+            }
+            #add-color-button {
+                background: #4B9BFF;
+                color: white;
+                padding: 5px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                display: inline-block;
+                font-size: 12px;
+                margin-top: 8px;
+            }
+            #add-color-button:hover {
+                background: #3a8aff;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="placeholder"></div>
+
+        <script type="text/template" id="main">
+            <style>
+                .editing-ui {
+                    display: none;
+                }
+
+                .simulating-ui {
+                    display: none;
+                }
+
+                .pcr-app {
+                    position: fixed !important;
+                }
+
+                .pcr-button {
+                    width: 60px !important;
+                    height: 30px !important;
+                    border-radius: 4px !important;
+                }
+            </style>
+
+            <canvas id="canvas"></canvas>
+            
+            <div id="ui">
+                <div id="start-button">Start</div>
+
+                <div id="preset-button" class="editing-ui">Random Preset</div>
+
+                <div class="slider-label editing-ui">Particle Density</div>
+                <div id="density-slider" class="slider editing-ui"></div>
+
+                <div id="particle-count" class="editing-ui"></div>
+
+                <div class="slider-label simulating-ui">Fluidity</div>
+                <div id="fluidity-slider" class="slider simulating-ui"></div>
+
+                <div class="slider-label simulating-ui">Speed</div>
+                <div id="speed-slider" class="slider simulating-ui"></div>
+
+                <div class="slider-label simulating-ui">Particle Size</div>
+                <div id="particle-size-slider" class="slider simulating-ui"></div>
+
+                <div class="slider-label simulating-ui">Particle Count</div>
+                <div id="particle-count-slider" class="slider simulating-ui"></div>
+
+                <div class="slider-label simulating-ui">Liquid Colors</div>
+                <div class="color-picker-container simulating-ui">
+                    <div id="color-pickers-container">
+                        <div class="color-picker-wrapper">
+                            <div id="color-picker"></div>
+                        </div>
+                    </div>
+                    <div id="add-color-button">Add Color</div>
+                </div>
+            </div>
+        </script>
+        <div id="placeholder"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+        <script src="wrappedgl.js"></script>
+        <script src="utilities.js"></script>
+        <script src="camera.js"></script>
+        <script src="boxeditor.js"></script>
+        <script src="simulator.js"></script>
+        <script src="renderer.js"></script>
+        <script src="simulatorrenderer.js"></script>
+        <script src="slider.js"></script>
+        <script src="colormanager.js"></script>
+        <script src="fluidparticles.js"></script>
+
+        <script>
+            function concatenateWords (list) {
+                if (list.length === 0) {
+                    return '';
+                } else if (list.length === 1) {
+                    return "'" + list[0] + "'";
+                } else {
+                    var result = '';
+                    for (var i = 0; i < list.length; ++i) {
+                        result += "'" + list[i] + "'";
+                        if (i < list.length - 1) {
+                            result += i < list.length - 2 ? ', ' : ' and '
+                        }
+                    }
+
+                    return result;
+                }
+            }
+
+            WrappedGL.checkWebGLSupportWithExtensions(['ANGLE_instanced_arrays', 'WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
+                function () { //we have webgl
+                    document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
+                    var fluidBox = new FluidParticles();
+                }, function (hasWebGL, unsupportedExtensions) {
+                    document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;
+                    if (!hasWebGL) { //webgl not supported
+                        document.getElementById('error').textContent = 'Unfortunately, your browser does not support WebGL';
+                    } else {
+                        document.getElementById('error').textContent = 'Unfortunately, your browser does not support the ' + concatenateWords(unsupportedExtensions) + " WebGL extension" + (unsupportedExtensions.length > 1 ? 's.' : '.');
+                    }
+                }
+            );
+        </script>
+    </body>
+
+</html>
