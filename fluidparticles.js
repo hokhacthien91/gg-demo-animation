@@ -129,7 +129,7 @@ var FluidParticles = (function () {
                 }
             }).bind(this));
 
-            // Initialize color manager
+            // Initialize color manager with 6 default colors
             this.colorManager = new ColorManager();
             
             // Cập nhật màu ngay khi có thay đổi
@@ -166,6 +166,7 @@ var FluidParticles = (function () {
             
             // Thêm listener khi thêm/xóa màu
             document.getElementById('add-color-button').addEventListener('click', () => {
+                // Cho phép thêm màu không giới hạn
                 // Đợi một chút để color picker được khởi tạo
                 setTimeout(() => this.updateColors(), 100);
             });
@@ -436,11 +437,12 @@ var FluidParticles = (function () {
 
         this.camera.setBounds(0, Math.PI / 2);
         
-        // Cập nhật màu ngay sau khi khởi tạo bộ mô phỏng
-        // Đảm bảo màu sắc được áp dụng ngay từ đầu
+        // Đảm bảo màu sắc mặc định được áp dụng ngay từ đầu
+        // Tăng thời gian đợi để đảm bảo tất cả 6 màu được tạo trước khi cập nhật
         setTimeout(() => {
+            console.log("Applying colors to simulation...");
             this.updateColors();
-        }, 0);
+        }, 100);
     }
 
     //go back to box editing

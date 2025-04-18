@@ -6,25 +6,102 @@ class ColorManager {
         this.colorWeights = []; // Lưu trữ trọng số cho từng màu
         this.onColorChangeListeners = []; // Thêm mảng lưu trữ các hàm callback
         
-        // Initialize first color picker
-        this.initializeFirstPicker();
+        // Default colors - 6 màu mặc định
+        this.defaultColors = [
+            '#FF4136', // Đỏ
+            '#FF851B', // Cam
+            '#FFDC00', // Vàng
+            '#2ECC40', // Xanh lá
+            '#0074D9', // Xanh dương
+            '#B10DC9'  // Tím
+        ];
+        
+        // Initialize with default colors
+        this.initializeWithDefaultColors();
         
         // Add button click handler
         this.addButton.addEventListener('click', () => this.addNewColorPicker());
     }
 
-    initializeFirstPicker() {
+    initializeWithDefaultColors() {
+        // Xóa bất kỳ color picker hiện có
+        this.colorPickers.forEach(picker => {
+            if (picker && typeof picker.destroyAndRemove === 'function') {
+                picker.destroyAndRemove();
+            }
+        });
+        this.colorPickers = [];
+        this.colorWeights = [];
+        
+        // Xóa tất cả color pickers trong container ngoại trừ color picker đầu tiên
+        const firstPickerWrapper = this.container.firstChild;
+        while (this.container.childNodes.length > 1) {
+            this.container.removeChild(this.container.lastChild);
+        }
+        
+        // Khởi tạo color picker đầu tiên
         const firstPicker = document.getElementById('color-picker');
-        const pickr = this.createPickr(firstPicker);
-        this.colorPickers.push(pickr);
-        this.colorWeights.push(Math.random()); // Thêm trọng số cho màu đầu tiên
+        if (firstPicker) {
+            const pickr = this.createPickr(firstPicker, this.defaultColors[0]);
+            this.colorPickers.push(pickr);
+            this.colorWeights.push(1);
+        }
+        
+        // Thêm 5 color picker còn lại, để đạt tổng số là 6
+        for (let i = 1; i < this.defaultColors.length; i++) {
+            // Create wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'color-picker-wrapper';
+            
+            // Create color picker container
+            const pickerContainer = document.createElement('div');
+            wrapper.appendChild(pickerContainer);
+            
+            // Create remove button
+            const removeButton = document.createElement('div');
+            removeButton.className = 'remove-color';
+            removeButton.innerHTML = '×';
+            removeButton.onclick = () => {
+                if (this.colorPickers.length > 6) { // Chỉ cho phép xóa nếu số lượng màu > 6
+                    const index = Array.from(this.container.children).indexOf(wrapper);
+                    this.colorPickers[index].destroyAndRemove();
+                    this.colorPickers.splice(index, 1);
+                    this.colorWeights.splice(index, 1);
+                    wrapper.remove();
+                    
+                    // Thông báo thay đổi
+                    this.notifyColorChangeListeners();
+                } else {
+                    console.log("Cannot remove - minimum of 6 colors required");
+                    alert("Không thể xóa. Cần tối thiểu 6 màu.");
+                }
+            };
+            wrapper.appendChild(removeButton);
+            
+            // Add to DOM
+            this.container.appendChild(wrapper);
+            
+            // Create and initialize Pickr with default color
+            const pickr = this.createPickr(pickerContainer, this.defaultColors[i]);
+            this.colorPickers.push(pickr);
+            this.colorWeights.push(1);
+        }
+        
+        // Đảm bảo ít nhất 6 color pickers
+        console.log("Initialized with " + this.colorPickers.length + " color pickers");
+        
+        // Kiểm tra và đảm bảo ít nhất 6 màu
+        this.ensureMinimumSixColors();
+        
+        // Thông báo thay đổi
+        this.notifyColorChangeListeners();
     }
 
-    createPickr(element) {
+    createPickr(element, defaultColor) {
         const pickr = Pickr.create({
             el: element,
             theme: 'nano',
-            default: this.getRandomColor(),
+            default: defaultColor || this.getDefaultColor(),
             components: {
                 preview: true,
                 opacity: true,
@@ -77,7 +154,7 @@ class ColorManager {
         removeButton.className = 'remove-color';
         removeButton.innerHTML = '×';
         removeButton.onclick = () => {
-            if (this.colorPickers.length > 1) {
+            if (this.colorPickers.length > 6) { // Chỉ cho phép xóa nếu số lượng màu > 6
                 const index = Array.from(this.container.children).indexOf(wrapper);
                 this.colorPickers[index].destroyAndRemove();
                 this.colorPickers.splice(index, 1);
@@ -86,6 +163,9 @@ class ColorManager {
                 
                 // Thông báo thay đổi
                 this.notifyColorChangeListeners();
+            } else {
+                console.log("Cannot remove - minimum of 6 colors required");
+                alert("Không thể xóa. Cần tối thiểu 6 màu.");
             }
         };
         wrapper.appendChild(removeButton);
@@ -93,15 +173,23 @@ class ColorManager {
         // Add to DOM
         this.container.appendChild(wrapper);
         
-        // Create and initialize Pickr
-        const pickr = this.createPickr(pickerContainer);
+        // Create and initialize Pickr with a default color from the list
+        const colorIndex = this.colorPickers.length % this.defaultColors.length;
+        const pickr = this.createPickr(pickerContainer, this.defaultColors[colorIndex]);
         this.colorPickers.push(pickr);
-        this.colorWeights.push(Math.random()); // Thêm trọng số cho màu mới
+        this.colorWeights.push(1); // Thêm trọng số cho màu mới
         
         // Thông báo thay đổi
         this.notifyColorChangeListeners();
     }
 
+    getDefaultColor() {
+        // Lấy màu mặc định tiếp theo từ danh sách
+        const index = this.colorPickers.length % this.defaultColors.length;
+        return this.defaultColors[index];
+    }
+
+    // Giữ nguyên phương thức getRandomColor cho trường hợp cần dùng sau này
     getRandomColor() {
         const hue = Math.random() * 360;
         const saturation = 0.7 + Math.random() * 0.3; // 70-100%
@@ -121,6 +209,17 @@ class ColorManager {
         else { r = c; g = 0; b = x; }
         
         return `rgb(${Math.round((r + m) * 255)}, ${Math.round((g + m) * 255)}, ${Math.round((b + m) * 255)})`;
+    }
+
+    // Phương thức để đảm bảo có ít nhất 6 màu
+    ensureMinimumSixColors() {
+        // Nếu thiếu màu, thêm màu cho đủ 6
+        while (this.colorPickers.length < 6) {
+            console.log("Adding additional color picker to reach minimum of 6 colors");
+            this.addNewColorPicker();
+        }
+        
+        console.log("Final color count: " + this.colorPickers.length);
     }
 
     // Get color for fluid simulation based on position or index

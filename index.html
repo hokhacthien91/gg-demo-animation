@@ -37,6 +37,88 @@
             #add-color-button:hover {
                 background: #3a8aff;
             }
+            /* Contact form styles */
+            #contact-form-container {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: rgba(255, 255, 255, 0.9);
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+                z-index: 100;
+                width: 320px;
+                display: none;
+                pointer-events: none;
+            }
+            #contact-form h2 {
+                margin-top: 0;
+                color: #333;
+                font-family: 'Asap', sans-serif;
+            }
+            #contact-form input,
+            #contact-form textarea,
+            #contact-form button,
+            #contact-form-close {
+                pointer-events: auto;
+            }
+            #contact-form input,
+            #contact-form textarea {
+                width: 100%;
+                padding: 10px;
+                margin-bottom: 15px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                box-sizing: border-box;
+                font-family: 'Asap', sans-serif;
+            }
+            #contact-form textarea {
+                min-height: 100px;
+                resize: vertical;
+            }
+            #contact-form button {
+                background: #4B9BFF;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: 'Asap', sans-serif;
+                font-weight: bold;
+                display: inline-block;
+            }
+            #contact-form button:hover {
+                background: #3a8aff;
+            }
+            #contact-form-close {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                cursor: pointer;
+                font-size: 20px;
+                color: #666;
+            }
+            #contact-form-close:hover {
+                color: #333;
+            }
+            #show-contact-form {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #4B9BFF;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: 'Asap', sans-serif;
+                font-weight: bold;
+                z-index: 90;
+            }
+            #show-contact-form:hover {
+                background: #3a8aff;
+            }
         </style>
     </head>
 
@@ -98,6 +180,20 @@
                     <div id="add-color-button">Add Color</div>
                 </div>
             </div>
+
+            <!-- Contact Form -->
+            <button id="show-contact-form">Liên hệ</button>
+            <div id="contact-form-container">
+                <div id="contact-form-close">&times;</div>
+                <form id="contact-form">
+                    <h2>Liên hệ với chúng tôi</h2>
+                    <input type="text" id="name" placeholder="Họ và tên" required>
+                    <input type="email" id="email" placeholder="Email" required>
+                    <input type="tel" id="phone" placeholder="Số điện thoại">
+                    <textarea id="message" placeholder="Nội dung" required></textarea>
+                    <button type="submit">Gửi</button>
+                </form>
+            </div>
         </script>
         <div id="placeholder"></div>
 
@@ -136,6 +232,22 @@
                 function () { //we have webgl
                     document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
                     var fluidBox = new FluidParticles();
+                    
+                    // Contact form functionality
+                    document.getElementById('show-contact-form').addEventListener('click', function() {
+                        document.getElementById('contact-form-container').style.display = 'block';
+                    });
+                    
+                    document.getElementById('contact-form-close').addEventListener('click', function() {
+                        document.getElementById('contact-form-container').style.display = 'none';
+                    });
+                    
+                    document.getElementById('contact-form').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        alert('Cảm ơn bạn đã gửi thông tin. Chúng tôi sẽ liên hệ lại sớm!');
+                        document.getElementById('contact-form-container').style.display = 'none';
+                        document.getElementById('contact-form').reset();
+                    });
                 }, function (hasWebGL, unsupportedExtensions) {
                     document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;
                     if (!hasWebGL) { //webgl not supported
