@@ -182,16 +182,16 @@
             </div>
 
             <!-- Contact Form -->
-            <button id="show-contact-form">Liên hệ</button>
+            <button id="show-contact-form">Contact</button>
             <div id="contact-form-container">
                 <div id="contact-form-close">&times;</div>
                 <form id="contact-form">
-                    <h2>Liên hệ với chúng tôi</h2>
-                    <input type="text" id="name" placeholder="Họ và tên" required>
+                    <h2>Contact Us</h2>
+                    <input type="text" id="name" placeholder="Full Name" required>
                     <input type="email" id="email" placeholder="Email" required>
-                    <input type="tel" id="phone" placeholder="Số điện thoại">
-                    <textarea id="message" placeholder="Nội dung" required></textarea>
-                    <button type="submit">Gửi</button>
+                    <input type="tel" id="phone" placeholder="Phone Number">
+                    <textarea id="message" placeholder="Message" required></textarea>
+                    <button type="submit">Send</button>
                 </form>
             </div>
         </script>
@@ -244,7 +244,7 @@
                     
                     document.getElementById('contact-form').addEventListener('submit', function(e) {
                         e.preventDefault();
-                        alert('Cảm ơn bạn đã gửi thông tin. Chúng tôi sẽ liên hệ lại sớm!');
+                        alert('Thank you for your message. We will contact you soon!');
                         document.getElementById('contact-form-container').style.display = 'none';
                         document.getElementById('contact-form').reset();
                     });
