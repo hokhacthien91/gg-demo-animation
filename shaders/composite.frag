@@ -20,6 +20,9 @@ uniform float u_liquidSaturation;
 uniform float u_liquidBrightness;
 uniform float u_colorCount;
 
+// Add time uniform for animation
+uniform float u_time;
+
 // Thêm uniform cho từng màu cụ thể
 uniform float u_hue0;
 uniform float u_hue1;
@@ -40,6 +43,57 @@ vec3 hsvToRGB(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+// Random function
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+// 2D Noise function
+float noise2D(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    
+    // Four corners in 2D of a tile
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+    
+    // Smooth Interpolation
+    vec2 u = f*f*(3.0-2.0*f);
+    
+    // Mix 4 corners percentages
+    return mix(a, b, u.x) + 
+            (c - a)* u.y * (1.0 - u.x) + 
+            (d - b) * u.x * u.y;
+}
+
+// Fractal Brownian Motion
+float fbm(vec3 position) {
+    // Use position for interesting variation
+    float value = 0.0;
+    float amplitude = 0.5;
+    float frequency = 3.0;
+    
+    // Add several layers of noise
+    for (int i = 0; i < 5; i++) {
+        value += amplitude * noise2D(vec2(position.x, position.y) * frequency + u_time * 0.1);
+        value += amplitude * noise2D(vec2(position.y, position.z) * frequency + u_time * 0.12);
+        value += amplitude * noise2D(vec2(position.z, position.x) * frequency + u_time * 0.14);
+        frequency *= 2.0;
+        amplitude *= 0.5;
+    }
+    
+    return value;
+}
+
+// 3D Noise function
+float noise3D(vec3 p) {
+    return 0.5 + 0.5 * sin(p.x * 7.0 + u_time * 0.3) * 
+                    cos(p.y * 7.0 + u_time * 0.2) * 
+                    sin(p.z * 7.0 + u_time * 0.1);
+}
+
 // Lấy hue dựa trên chỉ số màu
 float getHueByIndex(float index) {
     // Sử dụng trực tiếp giá trị hue từ uniform
@@ -54,68 +108,76 @@ float getHueByIndex(float index) {
     return u_hue0; // Mặc định trả về màu đầu tiên
 }
 
-// Hàm tạo nhiễu ngẫu nhiên
-float noise(vec3 p) {
-    // Hàm nhiễu đơn giản dựa trên sin/cos
-    return 0.5 + 0.5 * sin(p.x * 7.0) * cos(p.y * 7.0) * sin(p.z * 7.0);
-}
-
 // Tạo màu dựa trên vị trí và màu từ danh sách
 vec3 colorByPosition(vec3 position) {
-    // Thay đổi cách phân chia không gian để tạo ra hiệu ứng màu tự nhiên hơn
-    // Sử dụng khoảng cách từ điểm trung tâm và thêm nhiễu Perlin để tạo ranh giới tự nhiên hơn
-    
-    // Tạo một số điểm trung tâm ảo cho mỗi màu - phân bố đều hơn trong không gian
-    vec3 centers[8];
-    centers[0] = vec3(10.0, 5.0, 5.0);   // Điểm trung tâm màu 1
-    centers[1] = vec3(28.0, 7.0, 13.0);  // Điểm trung tâm màu 2
-    centers[2] = vec3(18.0, 13.0, 8.0);  // Điểm trung tâm màu 3
-    centers[3] = vec3(7.0, 10.0, 17.0);  // Điểm trung tâm màu 4
-    centers[4] = vec3(22.0, 5.0, 5.0);   // Điểm trung tâm màu 5
-    centers[5] = vec3(15.0, 15.0, 15.0); // Điểm trung tâm màu 6 - điều chỉnh
-    centers[6] = vec3(32.0, 12.0, 8.0);  // Điểm trung tâm màu 7 - điều chỉnh
-    centers[7] = vec3(5.0, 12.0, 3.0);   // Điểm trung tâm màu 8 - điều chỉnh
-    
     // Số lượng màu thực tế có sẵn
-    float colorCount = max(1.0, min(8.0, u_colorCount));
+    float colorCount = max(1.0, min(8.0, u_colorCount > 0.0 ? u_colorCount : 8.0));
     
-    // Định nghĩa hàm nhiễu cho mỗi màu để tạo ranh giới tự nhiên hơn
+    // Tạo các điểm trung tâm liên tục di chuyển
+    vec3 centers[8];
+    
+    // Tạo chuyển động cho các trung tâm màu
+    for (int i = 0; i < 8; i++) {
+        float speed = 0.2 + float(i) * 0.03;
+        float radius = 6.0 + float(i);
+        float angle = u_time * speed + float(i) * 0.8;
+        
+        // Tọa độ cơ sở cho mỗi trung tâm
+        vec3 baseCenter = vec3(
+            15.0 + float(i) * 2.0,
+            10.0,
+            10.0
+        );
+        
+        // Chuyển động xoay quanh tọa độ cơ sở
+        centers[i] = baseCenter + vec3(
+            sin(angle) * radius,
+            cos(angle * 0.7) * radius * 0.5,
+            sin(angle * 1.3) * radius * 0.7
+        );
+    }
+    
+    // Hệ số nhiễu cho mỗi màu
     float noiseFactors[8];
-    noiseFactors[0] = 2.5;
-    noiseFactors[1] = 2.7;
-    noiseFactors[2] = 2.9;
-    noiseFactors[3] = 3.1;
-    noiseFactors[4] = 2.8;
-    noiseFactors[5] = 3.3; // Tăng nhiễu cho màu 6
-    noiseFactors[6] = 3.5; // Tăng nhiễu cho màu 7
-    noiseFactors[7] = 3.7; // Tăng nhiễu cho màu 8
+    for (int i = 0; i < 8; i++) {
+        noiseFactors[i] = 2.5 + float(i) * 0.2;
+    }
     
-    // Tính toán khoảng cách đến mỗi điểm trung tâm
+    // Tìm hai điểm trung tâm gần nhất
     float minDist = 1000.0;
     float colorIndex = 0.0;
     float secondMinDist = 1000.0;
     float secondColorIndex = 0.0;
     
-    // Tìm hai điểm trung tâm gần nhất
     for (int i = 0; i < 8; i++) {
         if (float(i) >= colorCount) break;
         
-        // Trọng số riêng cho mỗi trục - làm cho hình dạng vùng màu không đều
-        vec3 weights = vec3(1.0, 1.2 + float(i) * 0.05, 1.1 - float(i) * 0.03);
+        // Tạo hình dạng không đều cho vùng màu
+        vec3 weights = vec3(
+            1.0 + sin(u_time * 0.3 + float(i)) * 0.2,
+            1.1 + cos(u_time * 0.4 + float(i) * 1.3) * 0.2,
+            0.9 + sin(u_time * 0.5 + float(i) * 0.7) * 0.2
+        );
         
-        // Sử dụng vecto khác nhau cho mỗi điểm trung tâm
+        // Tính khoảng cách đến điểm trung tâm với trọng số
         float dist = length((position - centers[i]) * weights);
         
-        // Thêm nhiễu cho ranh giới
+        // Thêm nhiễu cho ranh giới không đều
         float noiseFactor = noiseFactors[i];
-        dist += sin(position.x * 0.3 + float(i) * 0.1) * noiseFactor;
-        dist += cos(position.y * 0.4 + float(i) * 0.2) * noiseFactor;
-        dist += sin(position.z * 0.5 + float(i) * 0.3) * noiseFactor;
+        float timeOffset = u_time * 0.2 + float(i) * 0.5;
         
-        // Thêm nhiễu dựa trên vị trí và chỉ số màu
-        dist += noise(position * (0.05 + float(i) * 0.01)) * noiseFactor;
+        // Tạo ranh giới động và phức tạp
+        dist += sin(position.x * 0.3 + timeOffset) * noiseFactor;
+        dist += cos(position.y * 0.4 + timeOffset * 0.8) * noiseFactor;
+        dist += sin(position.z * 0.5 + timeOffset * 1.2) * noiseFactor;
         
-        // Lưu 2 khoảng cách nhỏ nhất để pha trộn ở biên
+        // Thêm nhiễu phức tạp hơn
+        dist += noise3D(position * 0.1 + vec3(u_time * 0.15) + vec3(float(i))) * noiseFactor;
+        
+        // Thêm FBM cho các vùng màu phức tạp và tự nhiên
+        dist += fbm(position * 0.05 + vec3(u_time * 0.1 + float(i))) * noiseFactor * 2.0;
+        
+        // Lưu 2 khoảng cách nhỏ nhất để pha trộn
         if (dist < minDist) {
             secondMinDist = minDist;
             secondColorIndex = colorIndex;
@@ -127,8 +189,8 @@ vec3 colorByPosition(vec3 position) {
         }
     }
     
-    // Tính toán trọng số pha trộn giữa 2 màu gần nhất
-    float blendFactor = smoothstep(0.0, 8.0, secondMinDist - minDist);
+    // Tính trọng số pha trộn giữa 2 màu gần nhất
+    float blendFactor = smoothstep(0.0, 4.0 + sin(u_time) * 2.0, secondMinDist - minDist);
     
     // Lấy hue từ danh sách màu
     float hue1 = getHueByIndex(colorIndex);
@@ -137,11 +199,8 @@ vec3 colorByPosition(vec3 position) {
     // Pha trộn 2 hue - tạo gradient ở biên
     float hue = mix(hue1, hue2, 1.0 - blendFactor);
     
-    // Thêm nhiễu nhỏ vào hue để tạo biến thể màu tinh tế
-    float hueDelta = sin(position.x * 0.5) * 0.01 + 
-                    cos(position.y * 0.4) * 0.01 + 
-                    sin(position.z * 0.3) * 0.01;
-    
+    // Thêm nhiễu vào hue
+    float hueDelta = fbm(position * 0.01 + vec3(u_time * 0.05)) * 0.02;
     hue = mod(hue + hueDelta, 1.0);
     
     return hsvToRGB(vec3(

@@ -451,7 +451,8 @@ var Renderer = (function () {
 
             .uniformTexture('u_shadowDepthTexture', 2, wgl.TEXTURE_2D, this.depthTexture)
             .uniform2f('u_shadowResolution', SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT)
-            .uniformMatrix4fv('u_lightProjectionViewMatrix', false, this.lightProjectionViewMatrix);
+            .uniformMatrix4fv('u_lightProjectionViewMatrix', false, this.lightProjectionViewMatrix)
+            .uniform1f('u_time', performance.now() / 1000.0);
 
         wgl.drawArrays(compositeDrawState, wgl.TRIANGLE_STRIP, 0, 4);
 
@@ -487,7 +488,8 @@ var Renderer = (function () {
             .useProgram(this.compositeProgram)
             .uniform1f('u_liquidHue', hue)
             .uniform1f('u_liquidSaturation', saturation)
-            .uniform1f('u_liquidBrightness', brightness);
+            .uniform1f('u_liquidBrightness', brightness)
+            .uniform1f('u_time', performance.now() / 1000.0);
         wgl.drawArrays(drawState, wgl.POINTS, 0, 1);
     }
 
@@ -521,7 +523,8 @@ var Renderer = (function () {
                 .useProgram(this.compositeProgram)
                 .uniform1f('u_liquidHue', colorArray[0].h)
                 .uniform1f('u_liquidSaturation', avgSat)
-                .uniform1f('u_liquidBrightness', avgVal);
+                .uniform1f('u_liquidBrightness', avgVal)
+                .uniform1f('u_time', performance.now() / 1000.0);
             
             // Cập nhật số lượng màu để shader biết cần phải chia bao nhiêu phần
             drawState.uniform1f('u_colorCount', totalColors);
