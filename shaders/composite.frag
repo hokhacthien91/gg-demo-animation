@@ -68,30 +68,51 @@ float noise2D(vec2 st) {
             (d - b) * u.x * u.y;
 }
 
-// Fractal Brownian Motion
-float fbm(vec3 position) {
-    // Use position for interesting variation
-    float value = 0.0;
-    float amplitude = 0.5;
-    float frequency = 3.0;
+// Improve the 3D Noise function for more complex patterns
+float noise3D(vec3 p) {
+    // Use multiple frequencies with different modulation factors
+    float n1 = sin(p.x * 8.0 + u_time * 0.3) * 
+               cos(p.y * 7.5 + u_time * 0.4) * 
+               sin(p.z * 6.2 + u_time * 0.1);
     
-    // Add several layers of noise
-    for (int i = 0; i < 5; i++) {
-        value += amplitude * noise2D(vec2(position.x, position.y) * frequency + u_time * 0.1);
-        value += amplitude * noise2D(vec2(position.y, position.z) * frequency + u_time * 0.12);
-        value += amplitude * noise2D(vec2(position.z, position.x) * frequency + u_time * 0.14);
-        frequency *= 2.0;
-        amplitude *= 0.5;
+    float n2 = cos(p.x * 5.3 + u_time * 0.15) * 
+               sin(p.y * 6.7 + u_time * 0.25) * 
+               cos(p.z * 7.1 + u_time * 0.35);
+    
+    float n3 = sin(p.x * 9.1 + u_time * 0.22) * 
+               sin(p.y * 8.3 + u_time * 0.18) * 
+               cos(p.z * 6.9 + u_time * 0.28);
+    
+    return 0.5 + 0.16 * (n1 + n2 + n3);
+}
+
+// Enhanced FBM with more octaves for greater detail
+float fbm(vec3 position) {
+    float value = 0.0;
+    float amplitude = 0.55;
+    float frequency = 2.5;
+    float lacunarity = 2.17;  // Frequency multiplier between octaves
+    float persistence = 0.48; // Amplitude multiplier between octaves
+    
+    // Use more varied time offsets for each dimension
+    vec3 timeOffsets = vec3(
+        u_time * 0.07,
+        u_time * 0.11 + 4.0,
+        u_time * 0.13 + 8.0
+    );
+    
+    // Add 6 octaves of noise for more detail
+    for (int i = 0; i < 6; i++) {
+        // Different offsets for each dimension to create asymmetry
+        value += amplitude * noise2D(vec2(position.x, position.y + timeOffsets.x) * frequency);
+        value += amplitude * noise2D(vec2(position.y + 2.3, position.z + timeOffsets.y) * (frequency * 1.1));
+        value += amplitude * noise2D(vec2(position.z + 4.7, position.x + timeOffsets.z) * (frequency * 0.9));
+        
+        frequency *= lacunarity;
+        amplitude *= persistence;
     }
     
     return value;
-}
-
-// 3D Noise function
-float noise3D(vec3 p) {
-    return 0.5 + 0.5 * sin(p.x * 7.0 + u_time * 0.3) * 
-                    cos(p.y * 7.0 + u_time * 0.2) * 
-                    sin(p.z * 7.0 + u_time * 0.1);
 }
 
 // Lấy hue dựa trên chỉ số màu
@@ -116,31 +137,55 @@ vec3 colorByPosition(vec3 position) {
     // Tạo các điểm trung tâm liên tục di chuyển
     vec3 centers[8];
     
-    // Tạo chuyển động cho các trung tâm màu
+    // Tạo chuyển động hỗn loạn hơn cho các trung tâm màu
     for (int i = 0; i < 8; i++) {
-        float speed = 0.2 + float(i) * 0.03;
-        float radius = 6.0 + float(i);
-        float angle = u_time * speed + float(i) * 0.8;
+        float idx = float(i);
         
-        // Tọa độ cơ sở cho mỗi trung tâm
+        // Make each center move with a unique, chaotic pattern
+        float baseSpeed = 0.15 + idx * 0.02;
+        
+        // Use prime numbers to create non-repeating patterns
+        float xFreq = 0.13 + idx * 0.007;
+        float yFreq = 0.11 + idx * 0.009;
+        float zFreq = 0.09 + idx * 0.011;
+        
+        // Different amplitudes for each dimension
+        float xAmp = 7.0 + sin(idx * 1.7) * 2.0;
+        float yAmp = 6.0 + cos(idx * 2.3) * 2.0;
+        float zAmp = 8.0 + sin(idx * 1.9) * 2.0;
+        
+        // Base positions that are more spread out
         vec3 baseCenter = vec3(
-            15.0 + float(i) * 2.0,
-            10.0,
-            10.0
+            15.0 + idx * 1.5 + sin(idx * 2.7) * 3.0,
+            10.0 + cos(idx * 1.3) * 4.0,
+            10.0 + sin(idx * 3.1) * 3.5
         );
         
-        // Chuyển động xoay quanh tọa độ cơ sở
+        // Create more chaotic, non-uniform motion
         centers[i] = baseCenter + vec3(
-            sin(angle) * radius,
-            cos(angle * 0.7) * radius * 0.5,
-            sin(angle * 1.3) * radius * 0.7
+            sin(u_time * xFreq) * xAmp + 
+            cos(u_time * 0.23 + idx * 0.9) * 2.0,
+            
+            cos(u_time * yFreq) * yAmp + 
+            sin(u_time * 0.19 + idx * 1.2) * 2.5,
+            
+            sin(u_time * zFreq) * zAmp + 
+            cos(u_time * 0.17 + idx * 1.5) * 3.0
+        );
+        
+        // Add some noise-based displacement for even more chaos
+        centers[i] += vec3(
+            noise2D(vec2(u_time * 0.1, idx * 3.7)) * 3.0,
+            noise2D(vec2(u_time * 0.12, idx * 2.9)) * 3.0,
+            noise2D(vec2(u_time * 0.14, idx * 4.1)) * 3.0
         );
     }
     
-    // Hệ số nhiễu cho mỗi màu
+    // Use different noise factors for each color
     float noiseFactors[8];
     for (int i = 0; i < 8; i++) {
-        noiseFactors[i] = 2.5 + float(i) * 0.2;
+        // More varied noise factors to create distinct region characteristics
+        noiseFactors[i] = 3.0 + sin(float(i) * 1.7) * 0.8 + cos(float(i) * 2.3) * 0.5;
     }
     
     // Tìm hai điểm trung tâm gần nhất
@@ -152,30 +197,49 @@ vec3 colorByPosition(vec3 position) {
     for (int i = 0; i < 8; i++) {
         if (float(i) >= colorCount) break;
         
-        // Tạo hình dạng không đều cho vùng màu
+        float idx = float(i);
+        
+        // Create distorted space with unique characteristics for each color
         vec3 weights = vec3(
-            1.0 + sin(u_time * 0.3 + float(i)) * 0.2,
-            1.1 + cos(u_time * 0.4 + float(i) * 1.3) * 0.2,
-            0.9 + sin(u_time * 0.5 + float(i) * 0.7) * 0.2
+            1.0 + sin(u_time * 0.21 + idx * 2.7) * 0.25 + cos(u_time * 0.17) * 0.15,
+            1.0 + cos(u_time * 0.19 + idx * 3.1) * 0.3 + sin(u_time * 0.23) * 0.1,
+            1.0 + sin(u_time * 0.15 + idx * 2.3) * 0.2 + cos(u_time * 0.29) * 0.25
         );
         
-        // Tính khoảng cách đến điểm trung tâm với trọng số
-        float dist = length((position - centers[i]) * weights);
+        // Add asymmetry to the weights
+        weights *= 1.0 + noise2D(vec2(u_time * 0.1, idx)) * 0.3;
         
-        // Thêm nhiễu cho ranh giới không đều
+        // Compute distorted distance metric based on position and time
+        vec3 distortedPos = position;
+        
+        // Apply a unique, animated distortion field for each color
+        distortedPos.x += sin(position.y * 0.2 + u_time * 0.13 + idx * 1.7) * 2.5;
+        distortedPos.y += cos(position.z * 0.25 + u_time * 0.11 + idx * 2.3) * 2.0;
+        distortedPos.z += sin(position.x * 0.18 + u_time * 0.17 + idx * 3.1) * 3.0;
+        
+        // Distance calculation with non-euclidean metric to create more organic shapes
+        float dist = length((distortedPos - centers[i]) * weights);
+        
+        // Apply complex noise patterns to the distance metric
         float noiseFactor = noiseFactors[i];
-        float timeOffset = u_time * 0.2 + float(i) * 0.5;
         
-        // Tạo ranh giới động và phức tạp
-        dist += sin(position.x * 0.3 + timeOffset) * noiseFactor;
-        dist += cos(position.y * 0.4 + timeOffset * 0.8) * noiseFactor;
-        dist += sin(position.z * 0.5 + timeOffset * 1.2) * noiseFactor;
+        // Create highly variable time offsets for more chaotic animation
+        float timeOffset1 = u_time * (0.12 + idx * 0.01) + idx * 1.3;
+        float timeOffset2 = u_time * (0.09 + idx * 0.015) + idx * 2.7;
+        float timeOffset3 = u_time * (0.14 + idx * 0.008) + idx * 3.5;
         
-        // Thêm nhiễu phức tạp hơn
-        dist += noise3D(position * 0.1 + vec3(u_time * 0.15) + vec3(float(i))) * noiseFactor;
+        // Create complex, layered noise distortions
+        dist += sin(position.x * 0.31 + position.z * 0.17 + timeOffset1) * noiseFactor * 0.7;
+        dist += cos(position.y * 0.27 + position.x * 0.23 + timeOffset2) * noiseFactor * 0.8;
+        dist += sin(position.z * 0.19 + position.y * 0.21 + timeOffset3) * noiseFactor * 0.9;
         
-        // Thêm FBM cho các vùng màu phức tạp và tự nhiên
-        dist += fbm(position * 0.05 + vec3(u_time * 0.1 + float(i))) * noiseFactor * 2.0;
+        // Add more complex 3D noise with different frequencies
+        dist += noise3D(position * 0.13 + vec3(u_time * 0.11 + idx * 1.1)) * noiseFactor * 0.9;
+        dist += noise3D(position * 0.19 + vec3(u_time * 0.07 + idx * 2.3)) * noiseFactor * 0.7;
+        
+        // Add FBM with position-dependent frequencies for more organic structures
+        float fbmFreq = 0.04 + sin(idx * 2.5) * 0.01;
+        dist += fbm(position * fbmFreq + vec3(u_time * 0.05 + idx * 1.7)) * noiseFactor * 2.5;
         
         // Lưu 2 khoảng cách nhỏ nhất để pha trộn
         if (dist < minDist) {
@@ -189,24 +253,41 @@ vec3 colorByPosition(vec3 position) {
         }
     }
     
-    // Tính trọng số pha trộn giữa 2 màu gần nhất
-    float blendFactor = smoothstep(0.0, 4.0 + sin(u_time) * 2.0, secondMinDist - minDist);
+    // Create a more dynamic, noise-influenced blend factor for smoother transitions
+    float blendWidth = 7.0 + sin(u_time * 0.19) * 2.0 + 
+                      fbm(position * 0.02 + vec3(u_time * 0.07)) * 3.0;
+    
+    // Tính trọng số pha trộn giữa 2 màu gần nhất với ranh giới không đều
+    float blendFactor = smoothstep(0.0, blendWidth, secondMinDist - minDist);
     
     // Lấy hue từ danh sách màu
     float hue1 = getHueByIndex(colorIndex);
     float hue2 = getHueByIndex(secondColorIndex);
     
-    // Pha trộn 2 hue - tạo gradient ở biên
-    float hue = mix(hue1, hue2, 1.0 - blendFactor);
+    // Use a third hue based on blending first two to create more complex transitions
+    float hue3 = mix(hue1, hue2, 0.5) + 0.15; // Slightly shifted third color
+    hue3 = mod(hue3, 1.0);
     
-    // Thêm nhiễu vào hue
-    float hueDelta = fbm(position * 0.01 + vec3(u_time * 0.05)) * 0.02;
-    hue = mod(hue + hueDelta, 1.0);
+    // Blend between multiple hues based on noise pattern for more complex coloring
+    float noiseMix = noise3D(position * 0.04 + vec3(u_time * 0.05));
+    float hueMix = mix(
+        mix(hue1, hue2, 1.0 - blendFactor),
+        hue3,
+        smoothstep(0.4, 0.6, noiseMix) * 0.3  // Subtle influence of the third color
+    );
+    
+    // Add significant noise variation to the hue to create subtle color streaks
+    float hueDelta = fbm(position * 0.015 + vec3(u_time * 0.03)) * 0.05;
+    float finalHue = mod(hueMix + hueDelta, 1.0);
+    
+    // Slight variation in saturation and brightness based on position
+    float satVariation = noise3D(position * 0.02 + vec3(u_time * 0.07)) * 0.1;
+    float briVariation = noise3D(position * 0.03 + vec3(u_time * 0.09)) * 0.1;
     
     return hsvToRGB(vec3(
-        hue,
-        u_liquidSaturation,
-        u_liquidBrightness
+        finalHue,
+        u_liquidSaturation * (1.0 + satVariation),
+        u_liquidBrightness * (1.0 + briVariation)
     ));
 }
 
