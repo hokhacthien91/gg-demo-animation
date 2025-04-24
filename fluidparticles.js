@@ -99,7 +99,7 @@ var FluidParticles = (function () {
             this.gridCellDensity = 0.5;
             this.timeStep = 1.0 / 60.0;
             this.particleSizeFactor = 1.2;
-            this.particleCountMultiplier = 1.0;
+            this.particleCountMultiplier = 0.4;
 
             // Setup UI elements
             this.densitySlider = new Slider(document.getElementById('density-slider'), this.gridCellDensity, 0.2, 3.0, (function (value) {
